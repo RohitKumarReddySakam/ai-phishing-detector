@@ -1,0 +1,393 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI Phishing Detector - Real-time URL Analysis</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
+        }
+
+        .container {
+            background: white;
+            border-radius: 20px;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+            padding: 40px;
+            max-width: 800px;
+            width: 100%;
+        }
+
+        h1 {
+            text-align: center;
+            color: #333;
+            margin-bottom: 10px;
+            font-size: 2.5em;
+        }
+
+        .subtitle {
+            text-align: center;
+            color: #666;
+            margin-bottom: 30px;
+            font-size: 1.1em;
+        }
+
+        .input-group {
+            margin-bottom: 20px;
+        }
+
+        label {
+            display: block;
+            margin-bottom: 8px;
+            color: #555;
+            font-weight: 600;
+        }
+
+        input[type="text"] {
+            width: 100%;
+            padding: 15px;
+            border: 2px solid #e0e0e0;
+            border-radius: 10px;
+            font-size: 16px;
+            transition: border-color 0.3s;
+        }
+
+        input[type="text"]:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+
+        .btn {
+            width: 100%;
+            padding: 15px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            border-radius: 10px;
+            font-size: 18px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: transform 0.2s;
+        }
+
+        .btn:hover {
+            transform: translateY(-2px);
+        }
+
+        .btn:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+        }
+
+        .result {
+            margin-top: 30px;
+            padding: 25px;
+            border-radius: 10px;
+            display: none;
+        }
+
+        .result.show {
+            display: block;
+            animation: slideIn 0.5s;
+        }
+
+        @keyframes slideIn {
+            from {
+                opacity: 0;
+                transform: translateY(20px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .result.safe {
+            background: #d4edda;
+            border: 2px solid #28a745;
+        }
+
+        .result.phishing {
+            background: #f8d7da;
+            border: 2px solid #dc3545;
+        }
+
+        .result h2 {
+            margin-bottom: 15px;
+            font-size: 1.8em;
+        }
+
+        .result.safe h2 {
+            color: #155724;
+        }
+
+        .result.phishing h2 {
+            color: #721c24;
+        }
+
+        .details {
+            margin-top: 15px;
+        }
+
+        .detail-item {
+            display: flex;
+            justify-content: space-between;
+            padding: 10px 0;
+            border-bottom: 1px solid rgba(0, 0, 0, 0.1);
+        }
+
+        .detail-label {
+            font-weight: 600;
+            color: #555;
+        }
+
+        .detail-value {
+            font-weight: 700;
+        }
+
+        .loading {
+            display: none;
+            text-align: center;
+            margin-top: 20px;
+        }
+
+        .loading.show {
+            display: block;
+        }
+
+        .spinner {
+            border: 4px solid #f3f3f3;
+            border-top: 4px solid #667eea;
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            animation: spin 1s linear infinite;
+            margin: 20px auto;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        .error {
+            background: #f8d7da;
+            color: #721c24;
+            padding: 15px;
+            border-radius: 10px;
+            margin-top: 20px;
+            display: none;
+        }
+
+        .error.show {
+            display: block;
+        }
+
+        .badge {
+            display: inline-block;
+            padding: 5px 15px;
+            border-radius: 20px;
+            font-size: 0.9em;
+            font-weight: 600;
+        }
+
+        .badge.critical {
+            background: #dc3545;
+            color: white;
+        }
+
+        .badge.high {
+            background: #fd7e14;
+            color: white;
+        }
+
+        .badge.medium {
+            background: #ffc107;
+            color: #333;
+        }
+
+        .badge.low {
+            background: #17a2b8;
+            color: white;
+        }
+
+        .badge.safe {
+            background: #28a745;
+            color: white;
+        }
+
+        .footer {
+            text-align: center;
+            margin-top: 30px;
+            color: #666;
+            font-size: 0.9em;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🛡️ AI Phishing Detector</h1>
+        <p class="subtitle">Real-time URL analysis powered by machine learning</p>
+
+        <form id="checkForm">
+            <div class="input-group">
+                <label for="urlInput">Enter URL to analyze:</label>
+                <input 
+                    type="text" 
+                    id="urlInput" 
+                    placeholder="https://example.com"
+                    required
+                >
+            </div>
+            <button type="submit" class="btn" id="checkBtn">
+                Analyze URL
+            </button>
+        </form>
+
+        <div class="loading" id="loading">
+            <div class="spinner"></div>
+            <p>Analyzing URL...</p>
+        </div>
+
+        <div class="error" id="error"></div>
+
+        <div class="result" id="result">
+            <h2 id="resultTitle"></h2>
+            <div class="details">
+                <div class="detail-item">
+                    <span class="detail-label">Analyzed URL:</span>
+                    <span class="detail-value" id="analyzedUrl"></span>
+                </div>
+                <div class="detail-item">
+                    <span class="detail-label">Prediction:</span>
+                    <span class="detail-value" id="prediction"></span>
+                </div>
+                <div class="detail-item">
+                    <span class="detail-label">Confidence:</span>
+                    <span class="detail-value" id="confidence"></span>
+                </div>
+                <div class="detail-item">
+                    <span class="detail-label">Risk Level:</span>
+                    <span id="riskBadge"></span>
+                </div>
+                <div class="detail-item">
+                    <span class="detail-label">Phishing Probability:</span>
+                    <span class="detail-value" id="probPhishing"></span>
+                </div>
+                <div class="detail-item">
+                    <span class="detail-label">Legitimate Probability:</span>
+                    <span class="detail-value" id="probLegit"></span>
+                </div>
+            </div>
+        </div>
+
+        <div class="footer">
+            Powered by Random Forest ML | 98.9% Accuracy
+        </div>
+    </div>
+
+    <script>
+        const form = document.getElementById('checkForm');
+        const urlInput = document.getElementById('urlInput');
+        const checkBtn = document.getElementById('checkBtn');
+        const loading = document.getElementById('loading');
+        const error = document.getElementById('error');
+        const result = document.getElementById('result');
+
+        form.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            
+            const url = urlInput.value.trim();
+            
+            if (!url) {
+                showError('Please enter a URL');
+                return;
+            }
+
+            // Reset UI
+            hideError();
+            hideResult();
+            showLoading();
+            checkBtn.disabled = true;
+
+            try {
+                const response = await fetch('/api/predict', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ url })
+                });
+
+                const data = await response.json();
+
+                if (!response.ok) {
+                    throw new Error(data.error || 'Prediction failed');
+                }
+
+                displayResult(data);
+
+            } catch (err) {
+                showError(err.message);
+            } finally {
+                hideLoading();
+                checkBtn.disabled = false;
+            }
+        });
+
+        function displayResult(data) {
+            // Set result class
+            result.className = 'result show ' + (data.is_phishing ? 'phishing' : 'safe');
+            
+            // Set title
+            document.getElementById('resultTitle').textContent = 
+                data.is_phishing ? '⚠️ PHISHING DETECTED' : '✅ SAFE URL';
+            
+            // Set details
+            document.getElementById('analyzedUrl').textContent = data.url;
+            document.getElementById('prediction').textContent = data.prediction;
+            document.getElementById('confidence').textContent = data.confidence.toFixed(2) + '%';
+            document.getElementById('probPhishing').textContent = data.probability_phishing.toFixed(2) + '%';
+            document.getElementById('probLegit').textContent = data.probability_legitimate.toFixed(2) + '%';
+            
+            // Set risk badge
+            const riskBadge = document.getElementById('riskBadge');
+            riskBadge.className = 'badge ' + data.risk_level.toLowerCase();
+            riskBadge.textContent = data.risk_level;
+        }
+
+        function showLoading() {
+            loading.classList.add('show');
+        }
+
+        function hideLoading() {
+            loading.classList.remove('show');
+        }
+
+        function showError(message) {
+            error.textContent = message;
+            error.classList.add('show');
+        }
+
+        function hideError() {
+            error.classList.remove('show');
+        }
+
+        function hideResult() {
+            result.classList.remove('show');
+        }
+    </script>
+</body>
+</html>
